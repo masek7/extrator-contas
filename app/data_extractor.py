@@ -75,7 +75,7 @@ def extract_date(doc):
 
         data = re.compile(r'\d{2}\/\d{2}\/\d{4}')
         data_nota = data.findall(doc)
-        dn_format = data_nota[0]
+        dn_format = data_nota[1]
 
         
         return dn_format
