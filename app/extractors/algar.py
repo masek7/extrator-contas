@@ -1,4 +1,25 @@
-import re
+import re  
+from app.extractors.base import get_empty_data
+
+CNPJS_CONHECIDOS =[ 
+                   
+                   "71.208.516/0165-00",
+                   "71.208.516/0001-74"
+                   ]
+
+
+def match(doc):
+    text_clean = doc.replace(".", "").replace("/", "").replace("-", "")
+    
+    for cnpj in CNPJS_CONHECIDOS:
+        cnpj_clean = cnpj.replace(".", "").replace("/", "").replace("-", "")
+        
+        if cnpj_clean in text_clean:
+            return True
+    
+    return False
+
+    
 
 def cnpj_pagador(doc):
     #func que extrai o cnpj do pdf
@@ -122,17 +143,66 @@ def barcode(doc):
 
         #func que extrai o codigo de barras contida na nota
        
+        padrao = re.compile(r'(?:\d{11,13}-\d)(?:\s+\d{11,13}-\d)+')
+        encontrado = padrao.search(doc)
 
-        barcode = re.compile(r'\d{47,48}')
-        barcode_nota = barcode.findall(doc)
-        bc_format = barcode_nota[0]
+        if not encontrado:
+            return None
 
-        
-        return bc_format
-    
+        return encontrado.group(0).replace("-", "").replace(" ", "").strip()
     except Exception as e:
         return None
     
 
-
+def nota_number(doc):
     
+    try:
+
+        #func que extrai o numero da nota contida na nota
+       
+
+        nota = re.compile(r'\b\d{6,10}\b')
+        nota_nota = nota.findall(doc)
+        nn_format = nota_nota[0]
+
+        
+        return nn_format
+    
+    except Exception as e:
+        return None
+
+
+def extract(doc_text):
+    """
+    Função Mestra: O Services.py chama AQUI.
+    Ela organiza os dados no padrão do sistema.
+    """
+    # 1. Pega o formulário em branco
+    data = get_empty_data()
+    
+    # 2. Preenche os metadados
+    data['arquivo'] = "Processado via Algar"
+    data['fornecedor'] = "ALGAR TELECOM"
+    
+    # 3. Chama suas funções especialistas
+    # Note que passamos 'doc_text' para todas elas
+    data['cnpj_fornecedor'] = cnpj_emitente(doc_text)
+    data['data_emissao']    = emission_date(doc_text)
+    data['data_vencimento'] = expire_date(doc_text)
+    data['valor_total']     = extract_value(doc_text)
+    data['codigo_barras']   = barcode(doc_text)
+    
+    # Opcional: Pegar o número da nota se quiser salvar no Excel
+    # Você pode adicionar um campo 'numero_nota' no base.py depois se quiser
+    # data['numero_nota'] = nota_number(doc_text) 
+
+    # 4. Validação Final de Qualidade
+    if data['valor_total'] and data['data_vencimento']:
+        data['status_leitura'] = "✅ Sucesso"
+    else:
+        missing = []
+        if not data['valor_total']: missing.append("Valor")
+        if not data['data_vencimento']: missing.append("Vencimento")
+        data['status_leitura'] = f"⚠️ Aviso: Faltou {', '.join(missing)}"
+        
+    return data
