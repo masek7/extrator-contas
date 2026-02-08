@@ -27,5 +27,3 @@ lab.py
 testes/
 drafts/
 
-# --- UV / Python (Manter pyproject.toml e uv.lock!) ---
-# Nota: NÃO ignore pyproject.toml nem uv.lock, eles são vitais.
