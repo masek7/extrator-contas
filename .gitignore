@@ -4,8 +4,28 @@ venv/
 env/
 __pycache__/
 *.py[cod]
-.idea/
-.vscode/
+
+
+*.xlsx
+*.csv
+*.pdf
+*.log
+notas_fiscais.xlsx
+
+
 .env
+.streamlit/secrets.toml
+
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
 
 lab.py
+testes/
+drafts/
+
+# --- UV / Python (Manter pyproject.toml e uv.lock!) ---
+# Nota: NÃO ignore pyproject.toml nem uv.lock, eles são vitais.
