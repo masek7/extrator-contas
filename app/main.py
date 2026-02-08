@@ -1,137 +1,110 @@
 import streamlit as st
 import pandas as pd
-from service import analyze_pdf as ap
-import xlsxwriter 
 import io
+from app import service
+
+st.set_page_config(page_title="Extrator de Contas", layout="wide")
+st.title("Extrator de Contas")
 
 
-st.set_page_config(
-    page_title="NFP", 
-    page_icon=":memo:", 
-    layout="wide")
+if 'dados_extraidos' not in st.session_state:
+    st.session_state['dados_extraidos'] = None
 
-st.markdown("""
-    <style>
+
+uploaded_files = st.file_uploader(
+    "Arraste seus PDFs aqui", 
+    type="pdf", 
+    accept_multiple_files=True
+)
+
+
+if uploaded_files and st.button("Processar Arquivos", type="primary"):
+    with st.spinner(f"Processando {len(uploaded_files)} arquivos..."):
         
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
-
-        
-        html, body, [class*="css"], div, span, p, label, button, input, textarea, select {
-            font-family: 'Poppins', sans-serif !important;
-        }
-
-        
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'Poppins', sans-serif !important;
-            font-weight: 600 !important;
-        }
-
-        
-        [data-testid="stDataFrame"], [data-testid="stTable"], .stDataFrame div {
-            font-family: 'Poppins', sans-serif !important;
-        }
-
-        
-        input::placeholder, textarea::placeholder {
-            font-family: 'Poppins', sans-serif !important;
-            color: #888 !important; /* Opcional: muda a cor do placeholder */
-        }
+        lista_resultados = []
         
         
-        [data-testid="stMetricValue"] {
-            font-family: 'Poppins', sans-serif !important;
-        }
-        
-        
-        div[role="grid"] {
-            font-family: 'Poppins', sans-serif !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
-st.title("Processador de notas fiscais em PDF")
-st.write("Carregue um arquivo PDF para extrair informações como CNPJ, Data e Valor.")
-
-def get_pdf():
-
-    arquivos = st.file_uploader(
-    "Adicione um PDF",
-     type=["pdf"],
-     accept_multiple_files=True)
-    
-
-    
-    if arquivos :
-        arquivos_processados = []
-        st.write(f'Arquivos carregados com sucesso! Total de {len(arquivos)} arquivo(s).')
-
-        for file in arquivos:
-            resultado = ap(file)
-
-            if resultado["dados"]["CNPJ"] is None or resultado["dados"]["DATA"] is None or resultado["dados"]["VALOR"] is None:
-                status = "ATENÇÃO"
-                resultado["dados"]["STATUS"] = status
-            else:
-                status = "SUCESSO"
-                resultado["dados"]["STATUS"] = status
-
-            if resultado["status"] == "success":
-                arquivos_processados.append({
-                    "ARQUIVO": resultado["filename"],
-                    **resultado["dados"]
-            })
-            else:
-                st.error(f"Erro ao processar {resultado['filename']}: {resultado['message']}")
-
-            
-
-        if arquivos_processados:
-            
-            df = pd.DataFrame(arquivos_processados)
-            
-
-            def color_cells(val):
-                color = 'yellow' if val == 'ATENÇÃO' else 'lightgreen'
-                return f'color: {color}; font-weight: bold'
-            
-            df_editado_styled = df.style.applymap(color_cells, subset=['STATUS'])
-
-            df_editado = st.data_editor(df_editado_styled,disabled=['STATUS'], use_container_width=True)
-
-            csv = df_editado.to_csv(index=False).encode('utf-8')
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-                df_editado.to_excel(writer, index=False, sheet_name='Notas Fiscais')
-                
+        for file in uploaded_files:
+            try:
                
-            xlsx = buffer.getvalue()
-     
-            
-            total_valor = df_editado["VALOR"].sum()
-
-            st.divider()            
-            col_acao, col_espaco, col_total = st.columns([2,6,3])
-            
-
-            with col_total:
+                file.seek(0)
                 
-                st.metric("VALOR TOTAL:", f"R$ {total_valor:,.2f}")
-            with col_acao:
-                st.download_button(
-                label="BAIXAR PLANILHA (CSV)",
-                data=csv,
-                file_name="dados_processados.csv",
-                mime="text/csv",
-                use_container_width=True
-               
-            )
-                st.download_button(
-                label="BAIXAR PLANILHA (XLSX)",
-                data=xlsx,
-                file_name="dados_processados.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
-            )
-            
+                data = service.process_pdf(file)
+                
+                
+                data['arquivo'] = file.name
+                
+                lista_resultados.append(data)
+                
+            except Exception as e:
+                
+                lista_resultados.append({
+                    "arquivo": file.name,
+                    "status_leitura": "Erro Crítico",
+                    "log_erro": str(e)
+                })
+        
+        
+        df = pd.DataFrame(lista_resultados)
+        st.session_state['dados_extraidos'] = df
 
-get_pdf() 
+
+if st.session_state['dados_extraidos'] is not None:
+    st.divider()
+    st.subheader("Confira e Edite os Dados:")
+    
+   
+    df_editado = st.data_editor(
+        st.session_state['dados_extraidos'],
+        num_rows="dynamic",
+        use_container_width=True,
+        key="editor_dados"
+    )
+    
+    st.divider()
+    st.subheader("Exportar Resultados")
+
+    
+    c1, c2, c3, c4 = st.columns([2, 3, 2, 1.5])
+    
+    with c1:
+        formato = st.radio(
+            "Escolha o formato:",
+            ["Excel (.xlsx)", "CSV (.csv)"],
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+
+    
+    if formato == "CSV (.csv)":
+        arquivo_para_download = df_editado.to_csv(index=False).encode('utf-8')
+        nome_arquivo = "contas_extraidas.csv"
+        tipo_mime = "text/csv"
+        label_btn = " Baixar CSV"
+    else:
+        
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            df_editado.to_excel(writer, index=False, sheet_name='Dados')
+        
+        arquivo_para_download = buffer.getvalue()
+        nome_arquivo = "contas_extraidas.xlsx"
+        tipo_mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        label_btn = " Baixar Planilha"
+
+    with c2:
+        st.empty() 
+
+    with c3:
+        st.download_button(
+            label=label_btn,
+            data=arquivo_para_download,
+            file_name=nome_arquivo,
+            mime=tipo_mime,
+            use_container_width=True
+        )
+
+    with c4:
+        if st.button("Limpar", type="primary", use_container_width=True):
+            st.session_state['dados_extraidos'] = None
+            st.rerun()

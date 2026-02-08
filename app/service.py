@@ -1,30 +1,26 @@
-from pdf_processor import process_pdf
-from data_extractor import extract_cnpj, extract_value, extract_date
-
-
-def analyze_pdf(pdf_file):
-    # Função que analisa o PDF e extrai as informações desejadas
-    
-    processed_pdf = process_pdf(pdf_file)
-
-    if processed_pdf["status"] == "error":
+# app/service.py
+import fitz
+from app.extractors import algar, vivo, base, boleto 
+def process_pdf(file_stream):
+    try:
+        
+        doc = fitz.open(stream=file_stream.read(), filetype="pdf")
+        text_content = ""
+        for page in doc:
+            text_content += page.get_text() + "\n"
+    except Exception as e:
         return {
-            "status": "error",
-            "message": processed_pdf["message"]
+            "status_leitura": "Erro Leitura",
+            "log_erro": str(e)
         }
+
     
+    text_upper = text_content.upper()
 
-    cnpj = extract_cnpj(processed_pdf["content"])
-    date = extract_date(processed_pdf["content"])
-    value = extract_value(processed_pdf["content"])
-
-    return {
-        "filename": processed_pdf["filename"],
-        "status": "success",
-        "dados": {
-        "STATUS" : "",
-        "CNPJ": cnpj,
-        "DATA": date,
-        "VALOR": value
-        }
-    }
+    if algar.match(text_content):
+        return algar.extract(text_content)
+    elif vivo.match(text_content):
+        return vivo.extract(text_content)
+    else:
+        
+        return boleto.extract(text_content)

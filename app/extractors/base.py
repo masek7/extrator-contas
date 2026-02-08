@@ -6,13 +6,13 @@ def get_empty_data():
     Todo extrator (Claro, Light, Vivo) deve preencher e retornar este dicionário.
     """
     return {
-        "arquivo": None,              # Nome do arquivo PDF
-        "fornecedor": "DESCONHECIDO", # Nome padronizado: CLARO, LIGHT, VIVO
-        "cnpj_fornecedor": None,      # CNPJ da empresa emissora
-        "data_emissao": None,         # Formato DD/MM/AAAA
-        "data_vencimento": None,      # Formato DD/MM/AAAA
-        "valor_total": 0.0,           # Float puro (ex: 150.50)
-        "codigo_barras": None,        # Linha digitável para pagamento
-        "status_leitura": "⚠️ Pendente", # Sucesso, Aviso ou Erro
-        "log_erro": ""                # Detalhe técnico se falhar
+        "arquivo": None,              
+        "fornecedor": "DESCONHECIDO", 
+        "cnpj_fornecedor": None,      
+        "data_emissao": None,         
+        "data_vencimento": None,      
+        "valor_total": 0.0,           
+        "codigo_barras": None,        
+        "status_leitura": "Pendente", 
+        "log_erro": ""                
     }

@@ -1,23 +1,7 @@
 import re  
 from app.extractors.base import get_empty_data
 
-CNPJS_CONHECIDOS =[ 
-                   
-                   "71.208.516/0165-00",
-                   "71.208.516/0001-74"
-                   ]
 
-
-def match(doc):
-    text_clean = doc.replace(".", "").replace("/", "").replace("-", "")
-    
-    for cnpj in CNPJS_CONHECIDOS:
-        cnpj_clean = cnpj.replace(".", "").replace("/", "").replace("-", "")
-        
-        if cnpj_clean in text_clean:
-            return True
-    
-    return False
 
     
 
@@ -40,8 +24,7 @@ def cnpj_emitente(doc):
         cnpj = re.compile(r'\d{2}\.\d{3}\.\d{3}\/\d{4}\-\d{2}')
         cnpj_encontrado = cnpj.findall(doc)
 
-        
-        return cnpj_encontrado[1]
+        return cnpj_encontrado[0]
         
     except IndexError as e:
         return None
@@ -110,7 +93,7 @@ def emission_date(doc):
     try:
         data = re.compile(r'\d{2}\/\d{2}\/\d{4}')
         data_nota = data.findall(doc)
-        ed_format = data_nota[1]
+        ed_format = data_nota[2]
         return ed_format
     
     except Exception as e:
@@ -120,13 +103,13 @@ def emission_date(doc):
 def barcode(doc):
     
     try:
-        padrao = re.compile(r'(?:\d{11,13}-\d)(?:\s+\d{11,13}-\d)+')
+        padrao = re.compile(r'\d{5}\.\d{5}\s+\d{5}\.\d{6}\s+\d{5}\.\d{6}\s+\d\s+\d{14}')
         encontrado = padrao.search(doc)
 
         if not encontrado:
             return None
 
-        return encontrado.group(0).replace("-", "").replace(" ", "").strip()
+        return encontrado.group(0).replace(".", "").replace(" ", "").strip()
     except Exception as e:
         return None
     
@@ -146,15 +129,15 @@ def nota_number(doc):
 def extract(doc_text):
     data = get_empty_data()
     
-    data['arquivo'] = "Processado via Algar"
-    data['fornecedor'] = "ALGAR TELECOM"
+    data['arquivo'] = "Desconhecido"
+    data['fornecedor'] = "BOLETO BANCÁRIO"
     
     data['cnpj_fornecedor'] = cnpj_emitente(doc_text)
     data['data_emissao']    = emission_date(doc_text)
     data['data_vencimento'] = expire_date(doc_text)
     data['valor_total']     = extract_value(doc_text)
     data['codigo_barras']   = barcode(doc_text)
-    
+        
     if data['valor_total'] and data['data_vencimento']:
         data['status_leitura'] = "Sucesso"
     else:
