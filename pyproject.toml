@@ -1,9 +1,9 @@
 [project]
 name = "extrator-contas"
 version = "0.1.0"
-description = "Add your description here"
+description = "Projeto focado em extrair dados de contas a pagar e receber, utilizando técnicas de OCR para processar documentos em PDF e Excel."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "openpyxl>=3.1.5",
     "pandas>=2.3.3",

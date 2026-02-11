@@ -5,18 +5,18 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    pkg-config \
-    libjpeg-dev \
-    zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install uv
 
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
-RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
+COPY pyproject.toml uv.lock ./
+
+
+RUN uv venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN uv sync --frozen --no-dev
+
 COPY . .
 
 EXPOSE 8501
