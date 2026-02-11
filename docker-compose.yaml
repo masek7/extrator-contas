@@ -1,0 +1,13 @@
+services:
+  extrator-ds:
+    build: .
+    container_name: extrator-ds
+    restart: always
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+      - /app/.venv
+    environment:
+      - TZ=America/Sao_Paulo
+      
