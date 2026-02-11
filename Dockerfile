@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y \
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
-RUN pip install --no-cache-dir --prefer-binary -r requirements.txtCOPY . .
+RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
+COPY . .
 
 EXPOSE 8501
 
